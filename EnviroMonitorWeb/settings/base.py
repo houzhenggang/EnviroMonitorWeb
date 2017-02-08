@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     'rest_framework',
     'rest_framework_swagger',
+    'rest_framework_gis',
     'crispy_forms',
     'django_filters',
     'django_extensions',
@@ -130,6 +131,16 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+# cache
+# https://docs.djangoproject.com/en/1.10/topics/cache/#local-memory-caching
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'smogly'
+    }
+}
+STATION_LAST_METERING_CACHE_TIMEOUT = 180
 # User settings
 
 # Provide your API key to Google Maps

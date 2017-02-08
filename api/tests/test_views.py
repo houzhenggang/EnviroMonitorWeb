@@ -2,8 +2,8 @@ from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_403_FORBIDDEN
 from rest_framework.test import APITestCase
 
-from .factories import UserFactory, ProjectFactory, Project
-from ..serializers import ProjectSerializer
+from .factories import UserFactory, ProjectFactory, StationFactory, Project, Station
+from ..serializers import StationSerializer, ProjectSerializer
 
 
 class ProjectApiTests(APITestCase):
@@ -17,6 +17,19 @@ class ProjectApiTests(APITestCase):
         self.client.login(username=self.user.username, password=UserFactory.DEFAULT_PASSWORD)
         return self.client.post(self.project_list_url, self.project_data, format='json')
 
+    def assertProjectDataEqual(self, data):
+        self.assertEqual(data['name'], self.project_data['name'])
+        self.assertEqual(data['website'], self.project_data['website'])
+        self.assertEqual(data['description'], self.project_data['description'])
+        self.assertEqual(data['logo'], self.project_data['logo'])
+        self.assertEqual(data['position'], self.project_data['position'])
+        self.assertEqual(data['country'], self.project_data['country'])
+        self.assertEqual(data['state'], self.project_data['state'])
+        self.assertEqual(data['county'], self.project_data['county'])
+        self.assertEqual(data['community'], self.project_data['community'])
+        self.assertEqual(data['city'], self.project_data['city'])
+        self.assertEqual(data['district'], self.project_data['district'])
+
     def test_project_create(self):
         self.assertEqual(Project.objects.count(), 0)
         api_response = self.create_project()
@@ -25,10 +38,7 @@ class ProjectApiTests(APITestCase):
 
         created_project = Project.objects.get()
         created_project_data = ProjectSerializer(created_project).data
-        self.assertEqual(created_project_data['name'], self.project_data['name'])
-        self.assertEqual(created_project_data['website'], self.project_data['website'])
-        self.assertEqual(created_project_data['description'], self.project_data['description'])
-        self.assertEqual(created_project_data['logo'], self.project_data['logo'])
+        self.assertProjectDataEqual(created_project_data)
         self.assertEqual(created_project.owner, self.user)
 
     def test_project_create_anon(self):
@@ -46,7 +56,44 @@ class ProjectApiTests(APITestCase):
             reverse('project-detail', kwargs={'pk': created_project.pk})
         )
         self.assertEqual(api_response.status_code, HTTP_200_OK)
-        self.assertEqual(api_response.data['name'], self.project_data['name'])
-        self.assertEqual(api_response.data['website'], self.project_data['website'])
-        self.assertEqual(api_response.data['description'], self.project_data['description'])
-        self.assertEqual(api_response.data['logo'], self.project_data['logo'])
+        self.assertProjectDataEqual(api_response.data)
+
+
+class StationApiTests(APITestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.existing_project = ProjectFactory.create()
+        self.station = StationFactory.build(project=self.existing_project)
+        self.station_data = StationSerializer(self.station).data
+        self.station_list_url = reverse('station-list')
+
+    def create_station(self):
+        self.client.login(username=self.user.username, password=UserFactory.DEFAULT_PASSWORD)
+        return self.client.post(self.station_list_url, self.station_data, format='json')
+
+    def assertStationDataEqual(self, data):
+        self.assertEqual(data['name'], self.station_data['name'])
+        self.assertEqual(data['type'], self.station_data['type'])
+        self.assertEqual(data['notes'], self.station_data['notes'])
+        self.assertEqual(data['is_in_test_mode'], self.station_data['is_in_test_mode'])
+        self.assertEqual(data['altitude'], self.station_data['altitude'])
+        self.assertEqual(data['position'], self.station_data['position'])
+        self.assertEqual(data['country'], self.station_data['country'])
+        self.assertEqual(data['state'], self.station_data['state'])
+        self.assertEqual(data['county'], self.station_data['county'])
+        self.assertEqual(data['community'], self.station_data['community'])
+        self.assertEqual(data['city'], self.station_data['city'])
+        self.assertEqual(data['district'], self.station_data['district'])
+        self.assertEqual(data['project'], self.station_data['project'])
+        self.assertEqual(data['last_metering'], self.station_data['last_metering'])
+
+    def test_station_create(self):
+        self.assertEqual(Station.objects.count(), 0)
+        api_response = self.create_station()
+        self.assertEqual(api_response.status_code, HTTP_201_CREATED)
+        self.assertEqual(Station.objects.count(), 1)
+
+        created_station = Station.objects.get()
+        created_station_data = StationSerializer(created_station).data
+        self.assertStationDataEqual(created_station_data)
+        self.assertEqual(created_station.owner, self.user)

@@ -1,5 +1,6 @@
 import uuid
 from django.conf import settings
+from django.core.cache import cache
 from django.contrib.gis.db import models as gis_models
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -142,6 +143,18 @@ class Station(AbstractTimeTrackable, AbstractLocation):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     project = models.ForeignKey('api.Project')
 
+    @property
+    def last_metering(self):
+        """
+        Return lastly created, serialized Metering object
+        """
+        cache_key = u'station-{}-last-metering'.format(self.pk)
+        if not cache.get(cache_key):
+            from api.serializers import MeteringSerializer
+            last_metering = self.metering_set.first()
+            cache.set(cache_key, MeteringSerializer(last_metering).data, settings.STATION_LAST_METERING_CACHE_TIMEOUT)
+        return cache.get(cache_key)
+
     class Meta:
         ordering = ('-created',)
 
@@ -198,7 +211,7 @@ class Project(AbstractTimeTrackable, AbstractLocation):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    slug = AutoSlugField(populate_from='name', blank=True)
+    slug = AutoSlugField(populate_from='name', blank=True, unique=True)
 
     website = models.URLField()
     description = models.TextField()
